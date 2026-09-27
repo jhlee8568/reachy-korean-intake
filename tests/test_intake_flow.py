@@ -16,14 +16,29 @@ def test_three_answers_then_smalltalk() -> None:
 
 
 def test_invalid_score_never_fabricates_answer() -> None:
-    """Invalid and out-of-range scores cause bounded retries, not advancement."""
+    """Keep prompting for a valid score without losing previous answers."""
     flow = IntakeFlow()
     flow.start()
     flow.accept("머리가 아파요")
     flow.accept("오늘요")
-    assert QUESTIONS[2] in str(flow.accept("13점"))
-    assert flow.index == 2
+    for answer in ["13점", "잘 모르겠어요", "", "많이 아파요", "-1"]:
+        assert flow.accept(answer) == "0부터 10까지의 숫자로 말해주실 수 있으시겠어요?"
+        assert flow.index == 2
+        assert flow.phase == "intake"
+        assert flow.answers == ["머리가 아파요", "오늘요"]
+    assert "문진이 끝났어요" in str(flow.accept("5점"))
+    assert flow.phase == "smalltalk"
+    assert flow.answers == ["머리가 아파요", "오늘요", "5점"]
+
+
+def test_stop_while_waiting_for_score() -> None:
+    """Explicit stop still ends intake while a valid score is pending."""
+    flow = IntakeFlow()
+    flow.start()
+    flow.accept("머리가 아파요")
+    flow.accept("오늘요")
     flow.accept("잘 모르겠어요")
+    flow.accept("그만")
     assert flow.phase == "stopped"
     assert flow.answers == []
 

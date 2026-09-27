@@ -62,7 +62,9 @@ class IntakeFlow:
             r"(10|[0-9]|영|공|일|이|삼|사|오|육|칠|팔|구|십|열)(?:점)?(?:정도)?(?:이에요|예요|이요|요|입니다)?",
             compact,
         )
-        if not text.strip() or (self.index == 2 and score_match is None):
+        if self.index == 2 and score_match is None:
+            return "0부터 10까지의 숫자로 말해주실 수 있으시겠어요?"
+        if not text.strip():
             self.retries += 1
             if self.retries >= 2:
                 self.stop()
