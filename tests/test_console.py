@@ -1064,3 +1064,30 @@ def test_rpc_settings_methods() -> None:
     assert isinstance(r2["result"], list)
     assert "spaces" in r3["result"]
     assert "enabled_tools" in r4["result"]
+
+
+@pytest.mark.asyncio
+async def test_smalltalk_requests_followup_and_respects_stop() -> None:
+    """Continue each small-talk turn, but never ask a follow-up after stop."""
+    handler = MagicMock()
+    handler.say = AsyncMock()
+    stream = LocalStream(handler, MagicMock())
+    stream.intake.start()
+    for answer in ["배가 아파요", "오늘요", "5점"]:
+        stream.intake.accept(answer)
+    for answer in ["음악을 들어요", "재즈를 좋아해요"]:
+        await stream._accept_korean(answer)
+        prompt = handler.say.call_args.args[0]
+        assert "[스몰토크]" in prompt
+        assert answer in prompt
+        assert "질문 하나를 반드시" in prompt
+        assert stream.intake.phase == "smalltalk"
+    handler.say.reset_mock()
+    await stream._accept_korean("")
+    handler.say.assert_not_awaited()
+    await stream._accept_korean("그만")
+    assert stream.intake.phase == "stopped"
+    prompt = handler.say.call_args.args[0]
+    assert "[앱 발화]" in prompt
+    assert "[스몰토크]" not in prompt
+    assert "대화를 마칠게요" in prompt

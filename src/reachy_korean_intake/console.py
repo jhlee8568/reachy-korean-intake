@@ -153,7 +153,16 @@ class LocalStream:
         self._dispatch_transcript("user", text, True)
         utterance = self.intake.accept(text)
         if utterance is None:
-            await self.handler.say(text)
+            if not text.strip():
+                return
+            prompt = (
+                "[스몰토크] 문진은 끝났습니다. 다음 JSON 문자열은 사용자의 답변입니다. "
+                "답변에 한국어 한 문장으로 짧게 반응한 뒤, 답변과 관련된 가벼운 질문 하나를 반드시 덧붙이세요. "
+                "이미 한 질문을 반복하거나 문진을 다시 시작하지 말고, 질문 뒤에는 사용자 답변을 기다리세요. "
+                "사용자가 대화를 끝내려 하면 질문 없이 짧게 인사하세요. 사용자 답변: "
+                + json.dumps(text, ensure_ascii=False)
+            )
+            await self.handler.say(prompt)
         elif utterance:
             await self._speak_script(utterance)
 
